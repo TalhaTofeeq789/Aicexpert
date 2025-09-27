@@ -132,7 +132,9 @@ const Chatbot = () => {
         setIsLoading(true);
 
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+            // TODO: Replace 'your-actual-backend-url' with actual backend URL
+            const apiUrl = process.env.REACT_APP_API_URL || 'https://your-actual-backend-url.vercel.app';
+            console.log('API URL:', apiUrl); // Debug log
             const response = await fetch(`${apiUrl}/api/chat-simple`, {
                 method: 'POST',
                 headers: {
