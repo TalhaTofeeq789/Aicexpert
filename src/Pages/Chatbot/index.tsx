@@ -138,8 +138,11 @@ const Chatbot = () => {
             console.log('🔗 Full endpoint:', `${apiUrl}/api/chat-simple`); // Debug log
             const response = await fetch(`${apiUrl}/api/chat-simple`, {
                 method: 'POST',
+                mode: 'cors', // Enable CORS
+                credentials: 'omit', // Don't send credentials
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     message: inputMessage.trim() // Send single message, not array

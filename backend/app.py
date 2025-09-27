@@ -5,17 +5,34 @@ import os
 # Create Flask app
 app = Flask(__name__)
 
-# Configure CORS
+# Configure CORS with specific origins
 CORS(app, resources={
     r"/*": {
-        "origins": ["*"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "origins": [
+            "https://aicexpert-frontend.vercel.app",
+            "http://localhost:3000",
+            "https://localhost:3000"
+        ],
+        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+        "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+        "supports_credentials": True
     }
 })
 
+# Add CORS headers manually for all responses
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin in ["https://aicexpert-frontend.vercel.app", "http://localhost:3000", "https://localhost:3000"]:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 # Health check endpoint
 @app.route('/', methods=['GET'])
+@app.route('/health', methods=['GET'])
 def health():
     return jsonify({
         'status': 'healthy',
@@ -33,8 +50,12 @@ def test():
     })
 
 # Simple chat endpoint
-@app.route('/api/chat-simple', methods=['POST'])
+@app.route('/api/chat-simple', methods=['POST', 'OPTIONS'])
 def chat_simple():
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+        
     try:
         data = request.get_json()
         if not data:
@@ -58,6 +79,16 @@ def chat_simple():
             'success': False,
             'error': str(e)
         }), 500
+
+# Global OPTIONS handler for preflight requests
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "*")
+        response.headers.add('Access-Control-Allow-Methods', "*")
+        return response
 
 # Error handler
 @app.errorhandler(404)
