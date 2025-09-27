@@ -190,37 +190,69 @@ def generate_image():
                 images = []
                 
                 # Check for 'data' array in response (most common format)
-                if 'data' in result and isinstance(result['data'], list):
-                    for item in result['data']:
+                if 'data' in result and isinstance(result['data'], list) and len(result['data']) > 0:
+                    print(f"Found data array with {len(result['data'])} items")
+                    
+                    for i, item in enumerate(result['data']):
+                        print(f"Processing item {i}: {type(item)}")
+                        
                         if isinstance(item, dict):
+                            print(f"Item keys: {list(item.keys())}")
+                            
                             # First check for base64 data (which seems to be what we're getting)
                             if 'base64' in item and item['base64']:
                                 base64_data = item['base64']
                                 print(f"Found base64 image data, length: {len(base64_data)}")
+                                
+                                # Remove any data URL prefix if it exists and clean the base64 string
+                                if base64_data.startswith('data:'):
+                                    base64_data = base64_data.split(',', 1)[1]
+                                
                                 # Create data URL for base64 image
                                 data_url = f"data:image/jpeg;base64,{base64_data}"
                                 images.append(data_url)
+                                print(f"Added base64 image as data URL")
+                            
                             # Look for URL in different possible fields
-                            elif 'url' in item:
+                            elif 'url' in item and item['url']:
+                                print(f"Found URL: {item['url']}")
                                 images.append(item['url'])
-                            elif 'image_url' in item:
+                            elif 'image_url' in item and item['image_url']:
+                                print(f"Found image_url: {item['image_url']}")
                                 images.append(item['image_url'])
-                            elif 'download_url' in item:
+                            elif 'download_url' in item and item['download_url']:
+                                print(f"Found download_url: {item['download_url']}")
                                 images.append(item['download_url'])
-                        elif isinstance(item, str):
+                            else:
+                                print(f"No recognizable image field found in item: {item}")
+                                
+                        elif isinstance(item, str) and item:
+                            print(f"Found string item: {item}")
                             images.append(item)
+                        else:
+                            print(f"Unhandled item type or empty: {item}")
                 
                 # Fallback: check if response is direct URL list
                 elif isinstance(result, list):
-                    images = result
+                    print("Response is a direct list")
+                    images = [item for item in result if item]  # Filter out empty items
                 
-                # Fallback: check for single URL
-                elif 'url' in result:
-                    images = [result['url']]
+                # Fallback: check for single URL or base64
+                elif isinstance(result, dict):
+                    print("Response is a single dict, checking for direct fields")
+                    if 'base64' in result and result['base64']:
+                        base64_data = result['base64']
+                        if base64_data.startswith('data:'):
+                            base64_data = base64_data.split(',', 1)[1]
+                        data_url = f"data:image/jpeg;base64,{base64_data}"
+                        images = [data_url]
+                    elif 'url' in result and result['url']:
+                        images = [result['url']]
                 
-                print(f"Extracted images: {images}")  # Debug log
+                print(f"Final extracted images count: {len(images)}")
+                print(f"Images preview: {[img[:100] + '...' if len(img) > 100 else img for img in images]}")
                 
-                if images:
+                if images and len(images) > 0:
                     return jsonify({
                         'success': True,
                         'images': images,
@@ -230,7 +262,13 @@ def generate_image():
                     return jsonify({
                         'success': False,
                         'error': 'No images found in API response',
-                        'raw_response': result
+                        'raw_response': result,
+                        'debug_info': {
+                            'has_data': 'data' in result,
+                            'data_type': type(result.get('data')) if 'data' in result else 'N/A',
+                            'data_length': len(result.get('data', [])) if 'data' in result and isinstance(result.get('data'), list) else 'N/A',
+                            'result_keys': list(result.keys()) if isinstance(result, dict) else 'N/A'
+                        }
                     }), 500
                     
             else:
