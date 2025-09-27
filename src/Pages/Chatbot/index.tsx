@@ -132,20 +132,29 @@ const Chatbot = () => {
         setIsLoading(true);
 
         try {
-            // Using environment variable for API URL
-            const apiUrl = process.env.REACT_APP_API_URL || 'https://aicexpert-backend.vercel.app';
-            console.log('API URL:', apiUrl); // Debug log
+            // HARDCODED URL for debugging - will work immediately 
+            const apiUrl = 'https://aicexpert-backend.vercel.app';
+            console.log('🚀 API URL:', apiUrl); // Debug log
+            console.log('🔗 Full endpoint:', `${apiUrl}/api/chat-simple`); // Debug log
             const response = await fetch(`${apiUrl}/api/chat-simple`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    messages: newMessages
+                    message: inputMessage.trim() // Send single message, not array
                 })
             });
 
+            console.log('📡 Response status:', response.status); // Debug log
+            console.log('📡 Response ok:', response.ok); // Debug log
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
             const data: ChatResponse = await response.json();
+            console.log('📨 Response data:', data); // Debug log
 
             if (data.success && data.content) {
                 const assistantMessage: Message = {
