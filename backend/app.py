@@ -164,9 +164,11 @@ def generate_image():
                 'x-freepik-api-key': freepik_api_key
             }
             
+            # Updated payload based on Freepik API v1 documentation
             payload = {
                 "prompt": prompt,
-                "num_images": 1
+                "num_images": 1,
+                "size": "1024x1024"
             }
             
             print(f"Calling Freepik API with prompt: {prompt}")  # Debug log
@@ -174,41 +176,70 @@ def generate_image():
                 'https://api.freepik.com/v1/ai/text-to-image',
                 headers=headers,
                 json=payload,
-                timeout=30
+                timeout=60  # Increased timeout for image generation
             )
             
             print(f"Freepik API response status: {response.status_code}")  # Debug log
-            print(f"Freepik API response: {response.text}")  # Debug log
+            print(f"Freepik API response headers: {dict(response.headers)}")  # Debug log
             
             if response.status_code == 200:
                 result = response.json()
                 print(f"Freepik API result: {result}")  # Debug log
                 
-                # Handle different possible response formats
+                # Extract images from the Freepik API response
                 images = []
-                if 'data' in result:
-                    # Standard format: {data: [{url: "...", ...}]}
-                    for img_data in result['data']:
-                        if isinstance(img_data, dict) and 'url' in img_data:
-                            images.append(img_data['url'])
-                        elif isinstance(img_data, str):
-                            images.append(img_data)
-                elif 'images' in result:
-                    # Alternative format: {images: ["url1", "url2"]}
-                    images = result['images']
+                
+                # Check for 'data' array in response (most common format)
+                if 'data' in result and isinstance(result['data'], list):
+                    for item in result['data']:
+                        if isinstance(item, dict):
+                            # Look for URL in different possible fields
+                            if 'url' in item:
+                                images.append(item['url'])
+                            elif 'image_url' in item:
+                                images.append(item['image_url'])
+                            elif 'download_url' in item:
+                                images.append(item['download_url'])
+                        elif isinstance(item, str):
+                            images.append(item)
+                
+                # Fallback: check if response is direct URL list
+                elif isinstance(result, list):
+                    images = result
+                
+                # Fallback: check for single URL
                 elif 'url' in result:
-                    # Single URL format: {url: "..."}
                     images = [result['url']]
                 
-                return jsonify({
-                    'success': True,
-                    'images': images,
-                    'prompt': prompt,
-                    'raw_response': result  # Include raw response for debugging
-                })
+                print(f"Extracted images: {images}")  # Debug log
+                
+                if images:
+                    return jsonify({
+                        'success': True,
+                        'images': images,
+                        'prompt': prompt
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'No images found in API response',
+                        'raw_response': result
+                    }), 500
+                    
             else:
-                error_msg = f'Image generation failed (Status: {response.status_code}): {response.text}'
-                print(f"Freepik API error: {error_msg}")
+                error_text = response.text
+                print(f"Freepik API error: {error_text}")
+                
+                # Handle specific error cases
+                if response.status_code == 401:
+                    error_msg = 'Invalid API key'
+                elif response.status_code == 402:
+                    error_msg = 'API quota exceeded'
+                elif response.status_code == 429:
+                    error_msg = 'Rate limit exceeded'
+                else:
+                    error_msg = f'API error (Status: {response.status_code}): {error_text}'
+                
                 return jsonify({
                     'success': False,
                     'error': error_msg
