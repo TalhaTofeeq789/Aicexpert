@@ -5,6 +5,10 @@ import time
 import json
 import os
 from cerebras.cloud.sdk import Cerebras
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -227,3 +231,7 @@ if __name__ == '__main__':
     print("Starting Flask backend server...")
     print("Backend will be available at: http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+# Vercel entry point
+def handler(request, response):
+    return app(request, response)
