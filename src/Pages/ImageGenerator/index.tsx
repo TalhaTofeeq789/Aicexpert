@@ -73,8 +73,8 @@ const ImageGenerator = () => {
             if (data.success && data.images && data.images.length > 0) {
                 setGenerationState(prev => ({ ...prev, progress: 100 }));
                 
-                const newImages: GeneratedImage[] = data.images.map((imageData: any) => ({
-                    url: imageData.url || imageData, // Handle different response formats
+                const newImages: GeneratedImage[] = data.images.map((imageUrl: string) => ({
+                    url: imageUrl, // imageUrl is now directly the URL (either HTTP URL or data URL)
                     prompt: userPrompt,
                     timestamp: Date.now()
                 }));

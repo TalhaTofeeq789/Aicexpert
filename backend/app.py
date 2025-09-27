@@ -193,8 +193,15 @@ def generate_image():
                 if 'data' in result and isinstance(result['data'], list):
                     for item in result['data']:
                         if isinstance(item, dict):
+                            # First check for base64 data (which seems to be what we're getting)
+                            if 'base64' in item and item['base64']:
+                                base64_data = item['base64']
+                                print(f"Found base64 image data, length: {len(base64_data)}")
+                                # Create data URL for base64 image
+                                data_url = f"data:image/jpeg;base64,{base64_data}"
+                                images.append(data_url)
                             # Look for URL in different possible fields
-                            if 'url' in item:
+                            elif 'url' in item:
                                 images.append(item['url'])
                             elif 'image_url' in item:
                                 images.append(item['image_url'])
