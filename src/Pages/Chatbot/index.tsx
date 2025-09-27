@@ -133,7 +133,7 @@ const Chatbot = () => {
 
         try {
             // HARDCODED URL for debugging - will work immediately 
-            const apiUrl = 'https://aicexpert-backend.vercel.app';
+            const apiUrl = 'https://aicexpert.vercel.app';
             console.log('🚀 API URL:', apiUrl); // Debug log
             console.log('🔗 Full endpoint:', `${apiUrl}/api/chat-simple`); // Debug log
             const response = await fetch(`${apiUrl}/api/chat-simple`, {
