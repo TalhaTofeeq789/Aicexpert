@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-from cerebras.cloud.sdk import Cerebras
 import requests
 import json
 
@@ -11,15 +10,9 @@ app = Flask(__name__)
 # Enable CORS for all routes
 CORS(app)
 
-# Initialize Cerebras client
+# Get API keys from environment
 cerebras_api_key = os.getenv('CEREBRAS_API_KEY')
 freepik_api_key = os.getenv('FREEPIK_API_KEY')
-
-if cerebras_api_key:
-    client = Cerebras(api_key=cerebras_api_key)
-else:
-    client = None
-    print("Warning: CEREBRAS_API_KEY not found in environment variables")
 
 # Health check endpoint
 @app.route('/', methods=['GET'])
@@ -45,7 +38,7 @@ def test():
         'cors': 'enabled'
     })
 
-# Cerebras AI Chat endpoint
+# Cerebras AI Chat endpoint using direct HTTP calls
 @app.route('/api/chat-simple', methods=['POST'])
 def chat_simple():
     try:
@@ -57,17 +50,23 @@ def chat_simple():
         if not message:
             return jsonify({'error': 'Message field is required'}), 400
 
-        # Check if Cerebras client is available
-        if not client:
+        # Check if Cerebras API key is available
+        if not cerebras_api_key:
             return jsonify({
                 'success': False,
                 'error': 'Cerebras API not configured'
             }), 500
 
-        # Call Cerebras API
+        # Call Cerebras API directly with HTTP requests
         try:
-            chat_completion = client.chat.completions.create(
-                messages=[
+            headers = {
+                'Authorization': f'Bearer {cerebras_api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            payload = {
+                "model": "llama3.1-8b",
+                "messages": [
                     {
                         "role": "system", 
                         "content": "You are AICEXPERT, a helpful AI assistant. Provide concise, accurate, and helpful responses."
@@ -77,19 +76,31 @@ def chat_simple():
                         "content": message
                     }
                 ],
-                model="llama3.1-8b",
-                max_tokens=1000,
-                temperature=0.7
+                "max_tokens": 1000,
+                "temperature": 0.7
+            }
+            
+            response = requests.post(
+                'https://api.cerebras.ai/v1/chat/completions',
+                headers=headers,
+                json=payload,
+                timeout=30
             )
             
-            # Extract response
-            ai_response = chat_completion.choices[0].message.content
-            
-            return jsonify({
-                'success': True,
-                'content': ai_response,
-                'model': 'llama3.1-8b'
-            })
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result['choices'][0]['message']['content']
+                
+                return jsonify({
+                    'success': True,
+                    'content': ai_response,
+                    'model': 'llama3.1-8b'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'AI service error: {response.text}'
+                }), response.status_code
             
         except Exception as cerebras_error:
             print(f"Cerebras API error: {cerebras_error}")
@@ -169,6 +180,19 @@ def generate_image():
             'success': False,
             'error': str(e)
         }), 500
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
+
+# Main entry point
+if __name__ == '__main__':
+    app.run(debug=False)
 
 # Error handler
 @app.errorhandler(404)
