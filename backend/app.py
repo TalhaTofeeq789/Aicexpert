@@ -5,29 +5,16 @@ import os
 # Create Flask app
 app = Flask(__name__)
 
-# Configure CORS with specific origins
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://aicexpert-frontend.vercel.app",
-            "http://localhost:3000",
-            "https://localhost:3000"
-        ],
-        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-        "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-        "supports_credentials": True
-    }
-})
+# Simple CORS - Allow all origins for now
+CORS(app, origins="*", allow_headers="*", methods="*")
 
-# Add CORS headers manually for all responses
+# Additional CORS headers for all responses
 @app.after_request
 def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin in ["https://aicexpert-frontend.vercel.app", "http://localhost:3000", "https://localhost:3000"]:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', '*')
+    response.headers.add('Access-Control-Allow-Methods', '*')
+    response.headers.add('Access-Control-Max-Age', '86400')
     return response
 
 # Health check endpoint
@@ -50,11 +37,22 @@ def test():
     })
 
 # Simple chat endpoint
-@app.route('/api/chat-simple', methods=['POST', 'OPTIONS'])
+@app.route('/api/chat-simple', methods=['GET', 'POST', 'OPTIONS'])
 def chat_simple():
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
-        return jsonify({'status': 'ok'}), 200
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', '*')
+        return response, 200
+        
+    if request.method == 'GET':
+        return jsonify({
+            'success': True,
+            'message': 'Chat endpoint is working',
+            'methods': ['GET', 'POST', 'OPTIONS']
+        })
         
     try:
         data = request.get_json()
@@ -79,16 +77,6 @@ def chat_simple():
             'success': False,
             'error': str(e)
         }), 500
-
-# Global OPTIONS handler for preflight requests
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = jsonify({'status': 'ok'})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add('Access-Control-Allow-Headers', "*")
-        response.headers.add('Access-Control-Allow-Methods', "*")
-        return response
 
 # Error handler
 @app.errorhandler(404)
