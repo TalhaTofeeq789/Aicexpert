@@ -13,11 +13,15 @@ allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',
 CORS(app, origins=allowed_origins)
 
 # Freepik API configuration
-API_KEY = os.getenv('FREEPIK_API_KEY', "FPSX9ee440a9b65c7c01b4d11a68754130b9")
+API_KEY = os.getenv('FREEPIK_API_KEY')
+if not API_KEY:
+    print("Warning: FREEPIK_API_KEY environment variable not set!")
 BASE_URL = "https://api.freepik.com/v1/ai/mystic"
 
 # Cerebras API configuration
-CEREBRAS_API_KEY = os.getenv('CEREBRAS_API_KEY', "csk-mwpcd286rwcr93kej9n92p5mt2nef4jkyper2eymvpvv4vjr")
+CEREBRAS_API_KEY = os.getenv('CEREBRAS_API_KEY')
+if not CEREBRAS_API_KEY:
+    print("Warning: CEREBRAS_API_KEY environment variable not set!")
 
 @app.route('/api/generate-image', methods=['POST'])
 def generate_image():
