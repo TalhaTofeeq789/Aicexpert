@@ -4,8 +4,15 @@ import requests
 import time
 import json
 import os
-from cerebras.cloud.sdk import Cerebras
 from dotenv import load_dotenv
+
+# Try importing Cerebras SDK, fallback if not available
+try:
+    from cerebras.cloud.sdk import Cerebras
+    CEREBRAS_AVAILABLE = True
+except ImportError:
+    print("Warning: Cerebras SDK not available, using fallback")
+    CEREBRAS_AVAILABLE = False
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,6 +33,16 @@ BASE_URL = "https://api.freepik.com/v1/ai/mystic"
 CEREBRAS_API_KEY = os.getenv('CEREBRAS_API_KEY')
 if not CEREBRAS_API_KEY:
     print("Warning: CEREBRAS_API_KEY environment variable not set!")
+
+# Health check endpoint
+@app.route('/', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'message': 'AICEXPERT Backend API is running',
+        'endpoints': ['/api/chat-simple', '/api/generate-image'],
+        'cerebras_available': CEREBRAS_AVAILABLE
+    })
 
 @app.route('/api/generate-image', methods=['POST'])
 def generate_image():
@@ -204,6 +221,13 @@ Please format your responses clearly and readably:
 - Always include practical examples when explaining code concepts'''
             })
 
+        # Check if Cerebras is available
+        if not CEREBRAS_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'error': 'Cerebras SDK not available in this deployment'
+            }), 500
+
         # Initialize Cerebras client
         client = Cerebras(api_key=CEREBRAS_API_KEY)
 
@@ -232,6 +256,6 @@ if __name__ == '__main__':
     print("Backend will be available at: http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
 
-# Vercel entry point
-def handler(request, response):
-    return app(request, response)
+# Export app for Vercel
+def handler(event, context):
+    return app
