@@ -132,8 +132,8 @@ const Chatbot = () => {
         setIsLoading(true);
 
         try {
-            // TODO: Replace 'your-actual-backend-url' with actual backend URL
-            const apiUrl = process.env.REACT_APP_API_URL || 'https://your-actual-backend-url.vercel.app';
+            // Using environment variable for API URL
+            const apiUrl = process.env.REACT_APP_API_URL || 'https://aicexpert-backend.vercel.app';
             console.log('API URL:', apiUrl); // Debug log
             const response = await fetch(`${apiUrl}/api/chat-simple`, {
                 method: 'POST',
