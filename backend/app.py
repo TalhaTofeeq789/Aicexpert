@@ -38,6 +38,28 @@ def test():
         'cors': 'enabled'
     })
 
+# Test image generation endpoint with mock data
+@app.route('/api/test-image', methods=['POST'])
+def test_image():
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt', 'test image')
+        
+        # Return mock successful response
+        return jsonify({
+            'success': True,
+            'images': [
+                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1024&q=80'
+            ],
+            'prompt': prompt,
+            'mock': True
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # Cerebras AI Chat endpoint using direct HTTP calls
 @app.route('/api/chat-simple', methods=['POST'])
 def chat_simple():
@@ -147,6 +169,7 @@ def generate_image():
                 "num_images": 1
             }
             
+            print(f"Calling Freepik API with prompt: {prompt}")  # Debug log
             response = requests.post(
                 'https://api.freepik.com/v1/ai/text-to-image',
                 headers=headers,
@@ -154,17 +177,41 @@ def generate_image():
                 timeout=30
             )
             
+            print(f"Freepik API response status: {response.status_code}")  # Debug log
+            print(f"Freepik API response: {response.text}")  # Debug log
+            
             if response.status_code == 200:
                 result = response.json()
+                print(f"Freepik API result: {result}")  # Debug log
+                
+                # Handle different possible response formats
+                images = []
+                if 'data' in result:
+                    # Standard format: {data: [{url: "...", ...}]}
+                    for img_data in result['data']:
+                        if isinstance(img_data, dict) and 'url' in img_data:
+                            images.append(img_data['url'])
+                        elif isinstance(img_data, str):
+                            images.append(img_data)
+                elif 'images' in result:
+                    # Alternative format: {images: ["url1", "url2"]}
+                    images = result['images']
+                elif 'url' in result:
+                    # Single URL format: {url: "..."}
+                    images = [result['url']]
+                
                 return jsonify({
                     'success': True,
-                    'images': result.get('data', []),
-                    'prompt': prompt
+                    'images': images,
+                    'prompt': prompt,
+                    'raw_response': result  # Include raw response for debugging
                 })
             else:
+                error_msg = f'Image generation failed (Status: {response.status_code}): {response.text}'
+                print(f"Freepik API error: {error_msg}")
                 return jsonify({
                     'success': False,
-                    'error': f'Image generation failed: {response.text}'
+                    'error': error_msg
                 }), response.status_code
                 
         except Exception as freepik_error:
