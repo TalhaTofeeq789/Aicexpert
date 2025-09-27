@@ -8,8 +8,9 @@ import avatar04 from "assets/images/avatar/04.png";
 import icon15 from "assets/images/icons/15.png";
 import useSidebarToggle from "Common/UseSideberToggleHooks";
 
-// Backend API configuration
-const BACKEND_URL = process.env.REACT_APP_API_URL || "https://aicexpert.vercel.app";
+// Backend API configuration - HARDCODED for stability
+const BACKEND_URL = "https://aicexpert.vercel.app";
+console.log('🎨 Image Generator API URL:', BACKEND_URL); // Debug log
 
 interface GeneratedImage {
     url: string;
@@ -46,6 +47,9 @@ const ImageGenerator = () => {
 
             // Call the backend API
             setGenerationState(prev => ({ ...prev, progress: 20 }));
+            console.log('🔗 Full image endpoint:', `${BACKEND_URL}/api/generate-image`); // Debug log
+            console.log('📝 Payload:', payload); // Debug log
+            
             const response = await fetch(`${BACKEND_URL}/api/generate-image`, {
                 method: 'POST',
                 headers: {
@@ -54,25 +58,33 @@ const ImageGenerator = () => {
                 body: JSON.stringify(payload)
             });
 
+            console.log('📡 Image Response status:', response.status); // Debug log
+            console.log('📡 Image Response ok:', response.ok); // Debug log
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('❌ Image API Error:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
+            console.log('📨 Image Response data:', data); // Debug log
             
-            if (data.success) {
+            if (data.success && data.images && data.images.length > 0) {
                 setGenerationState(prev => ({ ...prev, progress: 100 }));
                 
-                const newImages: GeneratedImage[] = data.images.map((url: string) => ({
-                    url,
+                const newImages: GeneratedImage[] = data.images.map((imageData: any) => ({
+                    url: imageData.url || imageData, // Handle different response formats
                     prompt: userPrompt,
                     timestamp: Date.now()
                 }));
 
+                console.log('✅ Generated images:', newImages); // Debug log
                 setGeneratedImages(prev => [...newImages, ...prev]);
                 setGenerationState({ loading: false, progress: 100, error: null });
             } else {
-                throw new Error(data.error || 'Unknown error occurred');
+                console.error('❌ Image generation failed:', data);
+                throw new Error(data.error || 'No images generated');
             }
 
         } catch (error) {
