@@ -9,7 +9,7 @@ import icon15 from "assets/images/icons/15.png";
 import useSidebarToggle from "Common/UseSideberToggleHooks";
 
 // Backend API configuration
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = process.env.REACT_APP_API_URL || "https://aicexpert.vercel.app";
 
 interface GeneratedImage {
     url: string;
