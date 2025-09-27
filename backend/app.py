@@ -5,17 +5,8 @@ import os
 # Create Flask app
 app = Flask(__name__)
 
-# Simple CORS - Allow all origins for now
-CORS(app, origins="*", allow_headers="*", methods="*")
-
-# Additional CORS headers for all responses
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', '*')
-    response.headers.add('Access-Control-Allow-Methods', '*')
-    response.headers.add('Access-Control-Max-Age', '86400')
-    return response
+# Enable CORS for all routes
+CORS(app)
 
 # Health check endpoint
 @app.route('/', methods=['GET'])
@@ -33,27 +24,13 @@ def test():
     return jsonify({
         'success': True,
         'message': 'API endpoint is working',
-        'method': request.method
+        'method': request.method,
+        'cors': 'enabled'
     })
 
 # Simple chat endpoint
-@app.route('/api/chat-simple', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/api/chat-simple', methods=['POST'])
 def chat_simple():
-    # Handle preflight OPTIONS request
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', '*')
-        return response, 200
-        
-    if request.method == 'GET':
-        return jsonify({
-            'success': True,
-            'message': 'Chat endpoint is working',
-            'methods': ['GET', 'POST', 'OPTIONS']
-        })
-        
     try:
         data = request.get_json()
         if not data:
